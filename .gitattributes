@@ -1,0 +1,2 @@
+# Keep the UI recognized as HTML without letting it dominate repository language stats.
+web/index.html -linguist-detectable
