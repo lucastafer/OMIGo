@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#080a0d" />
+    <meta name="color-scheme" content="dark" />
+    <title>OMIGo — WebP image optimizer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #080a0d;
+        --surface: #0d1218;
+        --surface-raised: #121a23;
+        --paper: #f8fafc;
+        --text: #f8fafc;
+        --muted: #9aa9b9;
+        --line: rgba(255, 255, 255, 0.13);
+        --line-strong: rgba(255, 255, 255, 0.24);
+        --blue: #1387ff;
+        --blue-bright: #51b5ff;
+        --brand-gradient: linear-gradient(
+          112deg,
+          #42b8ff 0%,
+          var(--blue) 52%,
+          #1764d6 100%
+        );
+        --danger: #ff818b;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--text);
+        background: var(--ink);
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 18px 20px 54px;
+        background: radial-gradient(
+          ellipse at 50% -20%,
+          #0b1a28 0%,
+          var(--ink) 54%
+        );
+      }
+      main {
+        width: min(100%, 900px);
+        margin: 0 auto;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.055em;
+      }
+      .brand-mark {
+        position: relative;
+        display: inline-flex;
+        width: 22px;
+        height: 21px;
+        overflow: hidden;
+        transform: skewX(-11deg);
+      }
+      .brand-mark i {
+        position: absolute;
+        top: 0;
+        left: 1px;
+        width: 10px;
+        height: 23px;
+        border-radius: 2px;
+        background: var(--blue);
+        transform: rotate(24deg);
+      }
+      .brand-mark i:last-child {
+        top: -3px;
+        right: 0;
+        left: auto;
+        background: var(--paper);
+      }
+      .local-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .local-label::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--blue-bright);
+        box-shadow: 0 0 0 4px rgba(19, 135, 255, 0.15);
+        content: "";
+      }
+      .intro {
+        margin-bottom: 21px;
+      }
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--blue-bright);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(30px, 5vw, 42px);
+        line-height: 1.05;
+        letter-spacing: -0.06em;
+      }
+      .subtitle {
+        max-width: 630px;
+        margin: 9px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .dropzone {
+        position: relative;
+        min-height: 184px;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        border: 1px dashed var(--line-strong);
+        border-radius: 12px;
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.025),
+          rgba(255, 255, 255, 0.008)
+        );
+        text-align: center;
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          transform 0.15s;
+      }
+      .dropzone.dragging {
+        border-color: var(--blue-bright);
+        background: rgba(19, 135, 255, 0.09);
+        transform: scale(1.003);
+      }
+      .upload-icon {
+        width: 38px;
+        height: 38px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 10px;
+        border: 1px solid rgba(81, 181, 255, 0.25);
+        border-radius: 11px;
+        color: var(--blue-bright);
+        background: rgba(19, 135, 255, 0.1);
+      }
+      .upload-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+      .drop-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .drop-hint {
+        margin: 5px 0 12px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .button {
+        min-height: 37px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 7px;
+        color: var(--ink);
+        background: var(--brand-gradient);
+        box-shadow: 0 5px 22px rgba(19, 135, 255, 0.17);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+        transition:
+          filter 0.15s,
+          opacity 0.15s;
+      }
+      .button:hover:not(:disabled) {
+        filter: brightness(1.12);
+      }
+      .button:focus-visible,
+      .clear-button:focus-visible,
+      .item-action:focus-visible {
+        outline: 2px solid var(--blue-bright);
+        outline-offset: 3px;
+      }
+      .button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      .button.download-all {
+        min-height: 40px;
+        padding-inline: 17px;
+      }
+      input[type="file"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        clip-path: inset(50%);
+      }
+      .formats {
+        margin: 10px 0 0;
+        color: #8192a2;
+        font-size: 10px;
+      }
+      .notice {
+        min-height: 18px;
+        margin: 9px 2px 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .notice.error {
+        color: var(--danger);
+      }
+      .results {
+        margin-top: 14px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+      }
+      .results[hidden] {
+        display: none;
+      }
+      .results-head {
+        padding: 16px 18px 14px;
+        background: linear-gradient(112deg, #121a23, #0d1218);
+      }
+      .results-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .results-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 720;
+        letter-spacing: -0.025em;
+      }
+      .results-summary {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .results-summary strong {
+        color: var(--blue-bright);
+        font-weight: 750;
+      }
+      .progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 13px;
+        color: #c1cfdd;
+        font-size: 10px;
+      }
+      .progress-track {
+        height: 4px;
+        overflow: hidden;
+        margin-top: 6px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.11);
+      }
+      .progress-fill {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--brand-gradient);
+        transition: width 0.25s ease;
+      }
+      .list {
+        max-height: 58vh;
+        overflow: auto;
+        padding: 0 18px;
+        scrollbar-color: #344353 transparent;
+      }
+      .item {
+        min-height: 67px;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto 30px;
+        align-items: center;
+        gap: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      .item:last-child {
+        border-bottom: 0;
+      }
+      .thumb {
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        object-fit: cover;
+        background: var(--surface-raised);
+      }
+      .item-details {
+        min-width: 0;
+      }
+      .file-name {
+        overflow: hidden;
+        color: #e5edf4;
+        font-size: 12px;
+        font-weight: 650;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .file-info {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .file-info .state {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .format-pill {
+        flex: none;
+        padding: 2px 5px;
+        border-radius: 3px;
+        color: var(--blue-bright);
+        background: rgba(19, 135, 255, 0.12);
+        font-size: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+      .sizes {
+        min-width: 142px;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: right;
+        white-space: nowrap;
+      }
+      .sizes strong {
+        color: #e3ebf2;
+        font-size: 11px;
+        font-weight: 680;
+      }
+      .saving {
+        display: block;
+        margin-top: 3px;
+        color: var(--blue-bright);
+        font-size: 9px;
+        font-weight: 750;
+      }
+      .saving.larger {
+        color: #ffc66b;
+      }
+      .item-action {
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 6px;
+        color: var(--muted);
+        background: transparent;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .item-action:hover {
+        color: var(--blue-bright);
+        background: rgba(19, 135, 255, 0.12);
+      }
+      .item-action svg {
+        width: 15px;
+        height: 15px;
+      }
+      .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.16);
+        border-top-color: var(--blue-bright);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .error-text {
+        color: var(--danger);
+      }
+      .results-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 18px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.018);
+      }
+      .foot-note {
+        color: #8192a2;
+        font-size: 10px;
+      }
+      .foot-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .clear-button {
+        border: 0;
+        padding: 7px 5px;
+        color: var(--muted);
+        background: transparent;
+        font: inherit;
+        font-size: 10px;
+        cursor: pointer;
+      }
+      .clear-button:hover:not(:disabled) {
+        color: var(--text);
+      }
+      .clear-button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      .bottom-download {
+        position: sticky;
+        z-index: 2;
+        bottom: 12px;
+        display: flex;
+        justify-content: center;
+        margin-top: 12px;
+        pointer-events: none;
+      }
+      .bottom-download .button {
+        box-shadow: 0 5px 22px rgba(0, 0, 0, 0.35);
+        pointer-events: auto;
+      }
+      .bottom-download[hidden] {
+        display: none;
+      }
+      .footnote {
+        margin: 16px 0 0;
+        color: #77889a;
+        font-size: 10px;
+        line-height: 1.5;
+        text-align: center;
+      }
+      @media (max-width: 600px) {
+        body {
+          padding: 15px 12px 42px;
+        }
+        .topbar {
+          margin-bottom: 24px;
+        }
+        .results-head {
+          padding: 14px 12px 12px;
+        }
+        .list {
+          padding: 0 11px;
+        }
+        .item {
+          grid-template-columns: 33px minmax(0, 1fr) auto 25px;
+          gap: 8px;
+          min-height: 64px;
+        }
+        .thumb {
+          width: 33px;
+          height: 33px;
+        }
+        .sizes {
+          min-width: auto;
+          font-size: 9px;
+        }
+        .sizes strong {
+          font-size: 10px;
+        }
+        .results-foot {
+          padding: 9px 11px;
+        }
+        .foot-note {
+          max-width: 120px;
+          line-height: 1.4;
+        }
+      }
+      @media (max-width: 390px) {
+        .results-top {
+          gap: 8px;
+        }
+        .results-top .button {
+          padding-inline: 10px;
+          font-size: 10px;
+        }
+        .item {
+          grid-template-columns: 30px minmax(0, 1fr) auto 23px;
+          gap: 6px;
+        }
+        .thumb {
+          width: 30px;
+          height: 30px;
+        }
+        .sizes .arrow,
+        .format-pill {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i></span
+          ><span>OMIGo</span>
+        </div>
+      </header>
+
+      <section class="intro">
+        <p class="eyebrow">Image optimizer</p>
+        <h1>Smaller images. Ready for the web.</h1>
+        <p class="subtitle">
+          Convert images to WebP in batches. Drop as many as you like; large
+          batches may take longer.
+        </p>
+      </section>
+
+      <section
+        class="dropzone"
+        id="dropzone"
+        aria-label="Drop images to convert"
+      >
+        <div>
+          <span class="upload-icon" aria-hidden="true"
+            ><svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" />
+              <path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" /></svg
+          ></span>
+          <p class="drop-title">Drop images here</p>
+          <p class="drop-hint">or choose multiple files from your device</p>
+          <button class="button" id="selectButton" type="button">
+            Choose images
+          </button>
+          <input
+            id="fileInput"
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.tif,.tiff,image/*"
+          />
+          <p class="formats">
+            JPG, PNG, GIF, WebP, BMP, or TIFF · up to 25 MB per image
+          </p>
+        </div>
+      </section>
+      <p class="notice" id="notice" role="status" aria-live="polite"></p>
+
+      <section
+        class="results"
+        id="results"
+        aria-label="Conversion queue"
+        hidden
+      >
+        <div class="results-head">
+          <div class="results-top">
+            <div>
+              <h2 class="results-title" id="resultsTitle">Image queue</h2>
+              <p class="results-summary" id="resultsSummary"></p>
+            </div>
+          </div>
+          <div class="progress-meta">
+            <span id="progressText">Waiting</span
+            ><span id="progressPercent">0%</span>
+          </div>
+          <div
+            class="progress-track"
+            role="progressbar"
+            aria-label="Overall progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+        <div class="list" id="list"></div>
+        <div class="results-foot">
+          <span class="foot-note"
+            >Files stay in this tab until you clear the queue.</span
+          >
+          <div class="foot-actions">
+            <button class="clear-button" id="clearButton" type="button">
+              Clear queue
+            </button>
+            <button
+              class="button download-all"
+              id="downloadAllBottom"
+              type="button"
+              disabled
+            >
+              ↓ &nbsp;Download all
+            </button>
+          </div>
+        </div>
+      </section>
+      <p class="footnote">
+        Images are processed by your local server and are not stored. Animated
+        GIF and WebP files use their first frame.
+      </p>
+    </main>
+
+    <script>
+      const input = document.getElementById("fileInput");
+      const zone = document.getElementById("dropzone");
+      const button = document.getElementById("selectButton");
+      const notice = document.getElementById("notice");
+      const results = document.getElementById("results");
+      const list = document.getElementById("list");
+      const queue = [];
+      let running = false;
+      let nextQueueIndex = 0;
+      const maxFileSize = 25 * 1024 * 1024;
+      const maxConcurrentConversions = 3;
+
+      button.addEventListener("click", () => input.click());
+      input.addEventListener("change", () => {
+        addFiles([...input.files]);
+        input.value = "";
+      });
+      for (const eventName of ["dragenter", "dragover"]) {
+        zone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          zone.classList.add("dragging");
+        });
+      }
+      for (const eventName of ["dragleave", "drop"]) {
+        zone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          zone.classList.remove("dragging");
+        });
+      }
+      zone.addEventListener("drop", (event) =>
+        addFiles([...event.dataTransfer.files]),
+      );
+      document
+        .getElementById("clearButton")
+        .addEventListener("click", clearQueue);
+      document
+        .querySelectorAll(".download-all")
+        .forEach((downloadButton) =>
+          downloadButton.addEventListener("click", downloadAll),
+        );
+
+      function addFiles(files) {
+        if (!files.length) return;
+        notice.className = "notice";
+        let oversized = 0;
+        for (const file of files) {
+          const tooLarge = file.size > maxFileSize;
+          const item = {
+            file,
+            status: tooLarge ? "error" : "queued",
+            blob: null,
+            outputURL: null,
+            previewURL: URL.createObjectURL(file),
+            error: tooLarge ? "Maximum file size is 25 MB" : "",
+          };
+          oversized += tooLarge ? 1 : 0;
+          queue.push(item);
+        }
+        notice.textContent = oversized
+          ? `${oversized} file(s) exceeded the 25 MB per-image limit.`
+          : "";
+        if (oversized) notice.classList.add("error");
+        render();
+        if (!running) processQueue();
+      }
+
+      async function processQueue() {
+        if (running) return;
+        running = true;
+        render();
+        const worker = async () => {
+          while (true) {
+            while (
+              nextQueueIndex < queue.length &&
+              queue[nextQueueIndex].status !== "queued"
+            )
+              nextQueueIndex++;
+            if (nextQueueIndex >= queue.length) return;
+            const item = queue[nextQueueIndex++];
+            item.status = "processing";
+            render();
+            try {
+              const form = new FormData();
+              form.append("image", item.file);
+              const response = await fetch("/convert", {
+                method: "POST",
+                body: form,
+              });
+              if (!response.ok)
+                throw new Error(
+                  (await response.text()).trim() || "Conversion failed",
+                );
+              item.blob = await response.blob();
+              item.outputURL = URL.createObjectURL(item.blob);
+              item.name = `${item.file.name.replace(/\.[^.]+$/, "") || "image"}.webp`;
+              item.status = "done";
+            } catch (error) {
+              item.status = "error";
+              item.error = error.message || "Conversion failed";
+            }
+            render();
+          }
+        };
+        await Promise.all(
+          Array.from({ length: maxConcurrentConversions }, worker),
+        );
+        running = false;
+        render();
+        if (queue.some((item) => item.status === "queued")) processQueue();
+      }
+
+      function render() {
+        results.hidden = queue.length === 0;
+        if (!queue.length) return;
+
+        const done = queue.filter((item) => item.status === "done");
+        const terminal = queue.filter(
+          (item) => item.status === "done" || item.status === "error",
+        ).length;
+        const processing = queue.filter(
+          (item) => item.status === "processing",
+        ).length;
+        const progress = Math.round((terminal / queue.length) * 100);
+        const inputBytes = done.reduce((sum, item) => sum + item.file.size, 0);
+        const outputBytes = done.reduce((sum, item) => sum + item.blob.size, 0);
+        const savings = inputBytes ? (1 - outputBytes / inputBytes) * 100 : 0;
+        const summary = done.length
+          ? `${done.length} of ${queue.length} ready · <strong>${savings >= 0 ? `${savings.toFixed(0)}% smaller` : `${Math.abs(savings).toFixed(0)}% larger`}</strong> · ${formatSize(inputBytes)} → ${formatSize(outputBytes)}`
+          : `${queue.length} image(s) in the queue`;
+
+        document.getElementById("resultsTitle").textContent = "Image queue";
+        document.getElementById("resultsSummary").innerHTML = summary;
+        document.getElementById("progressText").textContent =
+          terminal === queue.length
+            ? `${done.length} completed${queue.length - done.length ? ` · ${queue.length - done.length} failed` : ""}`
+            : `${terminal} of ${queue.length} completed${processing ? ` · ${processing} processing` : ""}`;
+        document.getElementById("progressPercent").textContent = `${progress}%`;
+        document.getElementById("progressFill").style.width = `${progress}%`;
+        document
+          .querySelector(".progress-track")
+          .setAttribute("aria-valuenow", String(progress));
+
+        const rows = document.createDocumentFragment();
+        for (const item of queue) rows.append(renderItem(item));
+        list.replaceChildren(rows);
+        const canDownload = !running && done.length > 0;
+        document.querySelectorAll(".download-all").forEach((downloadButton) => {
+          downloadButton.disabled = !canDownload;
+        });
+        document.getElementById("clearButton").disabled = running;
+      }
+
+      function renderItem(item) {
+        const row = document.createElement("article");
+        row.className = "item";
+        const thumb = document.createElement("img");
+        thumb.className = "thumb";
+        thumb.src = item.previewURL;
+        thumb.alt = "";
+
+        const details = document.createElement("div");
+        details.className = "item-details";
+        const name = document.createElement("div");
+        name.className = "file-name";
+        name.title = item.file.name;
+        name.textContent = item.file.name;
+        const info = document.createElement("div");
+        info.className = "file-info";
+        const pill = document.createElement("span");
+        pill.className = "format-pill";
+        pill.textContent =
+          item.status === "done" ? "WebP" : extension(item.file.name);
+        const state = document.createElement("span");
+        state.className = "state";
+        state.textContent =
+          item.status === "done"
+            ? "Converted"
+            : item.status === "processing"
+              ? "Optimizing…"
+              : item.status === "error"
+                ? item.error
+                : "Queued";
+        if (item.status === "error") state.classList.add("error-text");
+        info.append(pill, state);
+        details.append(name, info);
+
+        const sizes = document.createElement("div");
+        sizes.className = "sizes";
+        if (item.status === "done") {
+          const saved =
+            ((item.file.size - item.blob.size) / item.file.size) * 100;
+          sizes.innerHTML = `<strong>${formatSize(item.file.size)}</strong> <span class="arrow">→</span> <strong>${formatSize(item.blob.size)}</strong>`;
+          const saving = document.createElement("span");
+          saving.className = `saving${saved < 0 ? " larger" : ""}`;
+          saving.textContent =
+            saved >= 0
+              ? `−${saved.toFixed(0)}%`
+              : `+${Math.abs(saved).toFixed(0)}% larger`;
+          sizes.append(saving);
+        } else {
+          sizes.textContent = formatSize(item.file.size);
+        }
+
+        let action;
+        if (item.status === "processing") {
+          action = document.createElement("span");
+          action.className = "item-action";
+          action.innerHTML =
+            '<span class="spinner" aria-label="Processing"></span>';
+        } else if (item.status === "done") {
+          action = document.createElement("a");
+          action.className = "item-action";
+          action.href = item.outputURL;
+          action.download = item.name;
+          action.setAttribute("aria-label", `Download ${item.name}`);
+          action.title = "Download image";
+          action.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 16v4h14v-4"/></svg>';
+        } else {
+          action = document.createElement("span");
+          action.className = "item-action";
+          action.textContent = item.status === "error" ? "!" : "·";
+          if (item.status === "error") action.title = item.error;
+        }
+        row.append(thumb, details, sizes, action);
+        return row;
+      }
+
+      async function downloadAll() {
+        const done = queue.filter((item) => item.status === "done");
+        if (!done.length) return;
+        const buttons = Array.from(document.querySelectorAll(".download-all"));
+        buttons.forEach((button) => {
+          button.disabled = true;
+          button.textContent = "Preparing ZIP…";
+        });
+        try {
+          const form = new FormData();
+          for (const item of done) form.append("images", item.blob, item.name);
+          const response = await fetch("/download-all", {
+            method: "POST",
+            body: form,
+          });
+          if (!response.ok)
+            throw new Error(
+              (await response.text()).trim() || "Could not prepare the ZIP",
+            );
+          const url = URL.createObjectURL(await response.blob());
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "omigo-images.zip";
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        } catch (error) {
+          notice.className = "notice error";
+          notice.textContent = error.message || "Could not prepare the ZIP.";
+        } finally {
+          buttons.forEach((button) => {
+            button.textContent = "↓  Download all";
+            button.disabled = false;
+          });
+        }
+      }
+
+      function clearQueue() {
+        if (running) return;
+        for (const item of queue) {
+          URL.revokeObjectURL(item.previewURL);
+          if (item.outputURL) URL.revokeObjectURL(item.outputURL);
+        }
+        queue.length = 0;
+        nextQueueIndex = 0;
+        notice.textContent = "";
+        render();
+      }
+
+      function extension(name) {
+        return name.includes(".")
+          ? name.split(".").pop().slice(0, 8).toUpperCase()
+          : "IMG";
+      }
+      function formatSize(bytes) {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+        return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      }
+    </script>
+  </body>
+</html>

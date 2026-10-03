@@ -1,0 +1,4 @@
+github.com/SeriousBug/webp-go-pure v1.2.0 h1:vNfaUavQ2pPoOL/JHhEn83g/6ln9TyIzIc2oYFN8/nM=
+github.com/SeriousBug/webp-go-pure v1.2.0/go.mod h1:fqCT8wRyNoJx+CQxMvzFpjZq2Vv7ztOdXYqbmK+xRmU=
+golang.org/x/image v0.30.0 h1:jD5RhkmVAnjqaCUXfbGBrn3lpxbknfN9w2UhHHU+5B4=
+golang.org/x/image v0.30.0/go.mod h1:SAEUTxCCMWSrJcCy/4HwavEsfZZJlYxeHLc6tTiAe/c=
